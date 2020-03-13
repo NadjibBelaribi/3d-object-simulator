@@ -1,7 +1,7 @@
  #include "meshquad.h"
 #include "matrices.h"
 
-#define MAX 100000
+#define MAX 1000000000
 using namespace std ;
 void MeshQuad::clear()
 {
@@ -95,8 +95,19 @@ void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector
 
 void MeshQuad::bounding_sphere(Vec3& C, float& R)
 {
-    // C=
-    // R=
+
+        for (size_t i = 0; i < this->m_points.size(); i++) {
+            C += this->m_points.at(i);
+        }
+        C /= m_points.size();
+         float max = glm::length(C - this->m_points.at(0));
+        for (size_t i = 1; i < this->m_points.size(); i++) {
+            float tmp = glm::length(C - this->m_points.at(i));
+            if (tmp > max) {
+                max = tmp;
+            }
+        }
+        R = max;
 }
 
 
@@ -128,19 +139,15 @@ Vec3 MeshQuad::normal_of(const Vec3& A, const Vec3& B, const Vec3& C)
 {
     // Attention a l'ordre des points !
     // le produit vectoriel n'est pas commutatif U ^ V = - V ^ U
-    // ne pas oublier de normaliser le resultat.
+    // ne pas oublier de normcaliser le resultat.
 
-    Vec3 AB = Vec3(B[0]-A[0],B[1]-A[1],B[2]-A[2]) ;
-    Vec3 BC = Vec3(C[0]-B[0],C[1]-B[1],C[2]-B[2]) ;
-
-    float x = AB[1]*BC[2] - AB[1]*BC[2] ;
-    float y = AB[1]*BC[2] - AB[1]*BC[2] ;
-    float z = AB[1]*BC[2] - AB[1]*BC[2];
-
-    Vec3 N = Vec3(x,y,z) ;
-    float norme = sqrt(x*x+y*y+z*z) ;
-
-    return N/norme;
+    Vec3 n, nA, nB, nC;
+        nA = glm::cross(B-A, C-A);
+        nB = glm::cross(A-B, C-B);
+        nC = glm::cross(B-C, A-C);
+        n = (nA + nB + nC);
+        n /= 3;
+        return glm::normalize(n);
 }
 
 
