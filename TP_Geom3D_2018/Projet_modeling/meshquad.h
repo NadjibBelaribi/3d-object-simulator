@@ -80,6 +80,17 @@ public:
 	 */
 	Vec3 normal_of(const Vec3& A, const Vec3& B, const Vec3& C);
 
+    /**
+     * @brief calcul l'aire d'un quad
+     * @param i1 indices sommet 1
+     * @param i2 indices sommet 2
+     * @param i3 indices sommet 3
+     * @param i4 indices sommet 4
+     * @return l'aire du quad
+     */
+
+    float calcul_aire(Vec3 p1,Vec3 p2,Vec3 p3,Vec3 p4);
+
 	/**
 	 * @brief Determine si P est dans le quad A,B,C,D (P considéré ~ dans le plan ABCD)
 	 * @param P
@@ -89,6 +100,7 @@ public:
 	 * @param D
 	 * @return P dans le quad A,B,C,D
 	 */
+
 	bool is_points_in_quad(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D);
 
 	/**

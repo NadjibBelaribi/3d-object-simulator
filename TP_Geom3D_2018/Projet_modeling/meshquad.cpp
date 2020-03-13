@@ -1,18 +1,30 @@
 #include "meshquad.h"
 #include "matrices.h"
 
-
+using namespace std ;
 void MeshQuad::clear()
 {
+    this->m_points.clear() ;
+    this->m_quad_indices.clear() ;
+    this->m_nb_ind_edges = 0 ;
 }
 
-int MeshQuad::add_vertex(const Vec3& P)
-{
+int MeshQuad::add_vertex(const Vec3& P){
+
+    this->m_points.push_back(P) ;
+    return this->m_points.size() -1  ;
 }
 
 
 void MeshQuad::add_quad(int i1, int i2, int i3, int i4)
 {
+    this->m_quad_indices.push_back(i1) ;
+    this->m_quad_indices.push_back(i2) ;
+    this->m_quad_indices.push_back(i3) ;
+    this->m_quad_indices.push_back(i4) ;
+
+    this->m_nb_ind_edges  +=4 ;
+
 }
 
 void MeshQuad::convert_quads_to_tris(const std::vector<int>& quads, std::vector<int>& tris)
@@ -23,6 +35,23 @@ void MeshQuad::convert_quads_to_tris(const std::vector<int>& quads, std::vector<
 	// Pour chaque quad on genere 2 triangles
 	// Attention a repecter l'orientation des triangles
 
+     int index = 0 ;
+
+     for(size_t i = 0 ; i < quads.size()/4 ; i++)
+     {
+         tris.push_back(quads[index]) ;
+         tris.push_back(quads[index+1]) ;
+         tris.push_back(quads[index+2]) ;
+
+         tris.push_back(quads[index]) ;
+         tris.push_back(quads[index+2]) ;
+         tris.push_back(quads[index+3]) ;
+
+         index += 4 ;
+     }
+
+
+
 }
 
 void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector<int>& edges)
@@ -32,6 +61,28 @@ void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector
 	// Pour chaque quad on genere 4 aretes, 1 arete = 2 indices.
 	// Mais chaque arete est commune a 2 quads voisins !
 	// Comment n'avoir qu'une seule fois chaque arete ?
+
+
+    int index = 0 ;
+    unsigned int i ;
+
+    for( i = 0 ; i < quads.size()/4 ; i++)
+    {
+        if (i == 0 )
+        {
+              edges.push_back(quads[index]) ;
+              edges.push_back(quads[index+1]) ;
+        }
+        edges.push_back(quads[index+1]) ;
+        edges.push_back(quads[index+2]) ;
+        edges.push_back(quads[index+2]) ;
+        edges.push_back(quads[index+3]) ;
+        edges.push_back(quads[index+3]) ;
+        edges.push_back(quads[index]) ;
+
+
+        index += 4 ;
+    }
 
 }
 
@@ -45,12 +96,41 @@ void MeshQuad::bounding_sphere(Vec3& C, float& R)
 
 void MeshQuad::create_cube()
 {
-	clear();
-	// ajouter 8 sommets (-1 +1)
+    clear();
 
-	// ajouter 6 faces (sens trigo)
+    // ajouter 8 sommets (-1 +1)
+    Vec3 p0, p1, p2, p3, p4, p5, p6, p7, p8;
 
-	gl_update();
+        p0= Vec3(-0.5,-0.5,+0.5) ;  // P0
+        p1= Vec3(0.5,-0.5,+0.5);  // P1
+        p2= Vec3(0.5,+0.5,+0.5);  // P2
+        p3= Vec3(-0.5,+0.5,+0.5);  // P3
+        p4= Vec3(-0.5,-0.5,-0.5);  // P4
+        p5= Vec3(0.5,-0.5,-0.5);  // P5
+        p6= Vec3(0.5,+0.5,-0.5);  // P6
+        p7= Vec3(-0.5,+0.5,-0.5);   // P7
+
+
+    int i0, i1, i2, i3, i4, i5, i6, i7;
+
+    i0 = add_vertex(p0);
+    i1 = add_vertex(p1);
+    i2 = add_vertex(p2);
+    i3 = add_vertex(p3);
+    i4 = add_vertex(p4);
+    i5 = add_vertex(p5);
+    i6 = add_vertex(p6);
+    i7 = add_vertex(p7);
+
+    // ajouter 6 faces (sens trigo)
+    add_quad(i1, i2, i3, i0);
+    add_quad(i3, i2, i6, i7);
+    add_quad(i1, i2, i6, i5);
+    add_quad(i0, i3, i7, i4);
+    add_quad(i5, i6, i7, i4);
+    add_quad(i1, i5, i4, i0);
+
+    gl_update();
 }
 
 Vec3 MeshQuad::normal_of(const Vec3& A, const Vec3& B, const Vec3& C)
@@ -59,9 +139,30 @@ Vec3 MeshQuad::normal_of(const Vec3& A, const Vec3& B, const Vec3& C)
 	// le produit vectoriel n'est pas commutatif U ^ V = - V ^ U
 	// ne pas oublier de normaliser le resultat.
 
-	return Vec3();
+    Vec3 AB = Vec3(B[0]-A[0],B[1]-A[1],B[2]-A[2]) ;
+    Vec3 BC = Vec3(C[0]-B[0],C[1]-B[1],C[2]-B[2]) ;
+
+    float x = AB[1]*BC[2] - AB[1]*BC[2] ;
+    float y = AB[1]*BC[2] - AB[1]*BC[2] ;
+    float z = AB[1]*BC[2] - AB[1]*BC[2];
+
+    Vec3 N = Vec3(x,y,z) ;
+    float norme = sqrt(x*x+y*y+z*z) ;
+
+    return N/norme;
 }
 
+
+float MeshQuad::calcul_aire(Vec3 p1,Vec3 p2,Vec3 p3,Vec3 p4)
+{
+    float seg1=0.,seg2=0. ;
+
+    seg1 = sqrt(pow(p2[0]-p1[0],2)+pow(p2[1]-p1[1],2)+pow(p2[2]-p1[2],2)) ;
+    seg2 = sqrt(pow(p3[0]-p2[0],2)+pow(p3[1]-p2[1],2)+pow(p3[2]-p2[2],2)) ;
+
+    return seg1 * seg2 ;
+
+}
 
 bool MeshQuad::is_points_in_quad(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {

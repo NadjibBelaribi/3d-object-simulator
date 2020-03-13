@@ -72,7 +72,7 @@ void MeshTri::create_pyramide()
     int i3 = add_vertex(p3) ;
     int i4 = add_vertex(p4) ;
 
-	// ajouter les 8 lignes (segments)
+    // ajouter les 8 lignes (segments)
     add_line(i0,i1);
     add_line(i1,i2);
     add_line(i2,i3);
@@ -81,7 +81,7 @@ void MeshTri::create_pyramide()
     add_line(i1,i4);
     add_line(i2,i4);
     add_line(i3,i4);
-	// ajouter les 5 faces
+    // ajouter les 5 faces
 
     add_quad(i0,i1,i2,i3);
     add_tri(i0,i1,i4);
@@ -97,8 +97,8 @@ void MeshTri::anneau()
 	// ajouter les points
 
 
-    Vec3 p = Vec3(0.5,0,0) ;
-    Vec3 p1 = Vec3(1,-0.5,0) ;
+    Vec3 p = Vec3(0.5,1,0.25) ;
+    Vec3 p1 = Vec3(1,0,0) ;
     int i ;
     int indices[37] ;
     int indices1[37] ;

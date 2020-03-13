@@ -5,6 +5,7 @@
 
 bool intersecte(const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {
+    return true ;
 }
 
 
