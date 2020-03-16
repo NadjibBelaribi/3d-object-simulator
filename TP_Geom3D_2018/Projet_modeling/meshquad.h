@@ -29,7 +29,9 @@ public:
 	 */
 	void clear();
 
-	/**
+    float triAire(const Vec3& P, const Vec3& A, const Vec3& B) ;
+    float calcul_aire(int q) ;
+/**
 	 * @brief ajoute un sommet
 	 * @param P sommet
 	 * @return l'indice du sommet
@@ -89,7 +91,7 @@ public:
      * @return l'aire du quad
      */
 
-    float calcul_aire(Vec3 p1,Vec3 p2,Vec3 p3,Vec3 p4);
+    //float calcul_aire(Vec3 p1,Vec3 p2,Vec3 p3,Vec3 p4);
 
 	/**
 	 * @brief Determine si P est dans le quad A,B,C,D (P considéré ~ dans le plan ABCD)

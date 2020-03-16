@@ -1,276 +1,421 @@
 #include "meshquad.h"
 #include "matrices.h"
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
-using namespace std ;
+using namespace std;
 void MeshQuad::clear()
 {
-    this->m_points.clear() ;
-    this->m_quad_indices.clear() ;
-    this->m_nb_ind_edges = 0 ;
+    m_points.clear();
+    m_quad_indices.clear();
+    m_nb_ind_edges = 0;
 }
 
-int MeshQuad::add_vertex(const Vec3& P){
-
-    this->m_points.push_back(P) ;
-    return this->m_points.size() -1  ;
+int MeshQuad::add_vertex(const Vec3& P)
+{
+    m_points.push_back(P);
+    return m_points.size() - 1;
 }
 
 
 void MeshQuad::add_quad(int i1, int i2, int i3, int i4)
 {
-    this->m_quad_indices.push_back(i1) ;
-    this->m_quad_indices.push_back(i2) ;
-    this->m_quad_indices.push_back(i3) ;
-    this->m_quad_indices.push_back(i4) ;
-
-    this->m_nb_ind_edges  +=4 ;
-
+    m_quad_indices.push_back(i1);
+    m_quad_indices.push_back(i2);
+    m_quad_indices.push_back(i3);
+    m_quad_indices.push_back(i4);
+    m_nb_ind_edges += 4;
 }
 
 void MeshQuad::convert_quads_to_tris(const std::vector<int>& quads, std::vector<int>& tris)
 {
-	tris.clear();
-	tris.reserve(3*quads.size()/2);
+    tris.clear();
+    tris.reserve(3*quads.size()/2);
 
-	// Pour chaque quad on genere 2 triangles
-	// Attention a repecter l'orientation des triangles
+    // Pour chaque quad on genere 2 triangles
+    // Attention a repecter l'orientation des triangles
+    for (size_t i=0; i<quads.size(); i+=4) {
+        int v1 = quads.at(i);
+        int v2 = quads.at(i+1);
+        int v3 = quads.at(i+2);
+        int v4 = quads.at(i+3);
 
-     int index = 0 ;
-
-     for(size_t i = 0 ; i < quads.size()/4 ; i++)
-     {
-         tris.push_back(quads[index]) ;
-         tris.push_back(quads[index+1]) ;
-         tris.push_back(quads[index+2]) ;
-
-         tris.push_back(quads[index]) ;
-         tris.push_back(quads[index+2]) ;
-         tris.push_back(quads[index+3]) ;
-
-         index += 4 ;
+        tris.push_back(v1);
+        tris.push_back(v2);
+        tris.push_back(v3);
+        tris.push_back(v3);
+        tris.push_back(v4);
+        tris.push_back(v1);
      }
-
-
 
 }
 
 void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector<int>& edges)
 {
-	edges.clear();
-	edges.reserve(quads.size()); // ( *2 /2 !)
-	// Pour chaque quad on genere 4 aretes, 1 arete = 2 indices.
-	// Mais chaque arete est commune a 2 quads voisins !
-	// Comment n'avoir qu'une seule fois chaque arete ?
+    edges.clear();
+    edges.reserve(quads.size()); // ( *2 /2 !)
+    // Pour chaque quad on genere 4 aretes, 1 arete = 2 indices.
+    // Mais chaque arete est commune a 2 quads voisins !
+    // Comment n'avoir qu'une seule fois chaque arete ?
+    size_t i, max_quads = quads.size();
+    for (i = 0; i < max_quads; i+=4) {
+        int i1 = quads.at(i);
+        int i2 = quads.at(i+1);
+        int i3 = quads.at(i+2);
+        int i4 = quads.at(i+3);
 
-
-    int index = 0 ;
-    unsigned int i ;
-
-    for( i = 0 ; i < quads.size()/4 ; i++)
-    {
-        if (i == 0 )
-        {
-              edges.push_back(quads[index]) ;
-              edges.push_back(quads[index+1]) ;
+        if (i1 < i2) {
+           edges.push_back(i1);
+           edges.push_back(i2);
         }
-        edges.push_back(quads[index+1]) ;
-        edges.push_back(quads[index+2]) ;
-        edges.push_back(quads[index+2]) ;
-        edges.push_back(quads[index+3]) ;
-        edges.push_back(quads[index+3]) ;
-        edges.push_back(quads[index]) ;
-
-
-        index += 4 ;
-    }
-
+        if (i2 < i3) {
+           edges.push_back(i2);
+           edges.push_back(i3);
+        }
+        if (i3 < i4) {
+           edges.push_back(i3);
+           edges.push_back(i4);
+        }
+        if (i4 < i1) {
+           edges.push_back(i4);
+           edges.push_back(i1);
+        }
+      }
 }
 
 
 void MeshQuad::bounding_sphere(Vec3& C, float& R)
 {
-	// C=
-	// R=
+      size_t i;
+      for (i = 0; i < m_points.size(); i++) {
+          C += m_points.at(i);
+      }
+      C /= m_points.size();
+      float max = glm::length(m_points.at(0) - C);
+      for (i = 1; i < m_points.size(); i++) {
+          float tmp = glm::length(m_points.at(i) - C);
+          if (tmp > max) {
+              max = tmp;
+          }
+      }
+      R = max;
 }
 
 
 void MeshQuad::create_cube()
 {
     clear();
-
-    // ajouter 8 sommets (-1 +1)
-    Vec3 p0, p1, p2, p3, p4, p5, p6, p7, p8;
-
-        p0= Vec3(-0.5,-0.5,+0.5) ;  // P0
-        p1= Vec3(0.5,-0.5,+0.5);  // P1
-        p2= Vec3(0.5,+0.5,+0.5);  // P2
-        p3= Vec3(-0.5,+0.5,+0.5);  // P3
-        p4= Vec3(-0.5,-0.5,-0.5);  // P4
-        p5= Vec3(0.5,-0.5,-0.5);  // P5
-        p6= Vec3(0.5,+0.5,-0.5);  // P6
-        p7= Vec3(-0.5,+0.5,-0.5);   // P7
-
-
-    int i0, i1, i2, i3, i4, i5, i6, i7;
-
-    i0 = add_vertex(p0);
-    i1 = add_vertex(p1);
-    i2 = add_vertex(p2);
-    i3 = add_vertex(p3);
-    i4 = add_vertex(p4);
-    i5 = add_vertex(p5);
-    i6 = add_vertex(p6);
-    i7 = add_vertex(p7);
+    // ajouter 8 sommets (-0.5 +0.5)
+    int i1 = add_vertex(Vec3(-0.35,0.35,0.35));
+    int i2 = add_vertex(Vec3(-0.35,-0.35,0.35));
+    int i3 = add_vertex(Vec3(0.35,-0.35,0.35));
+    int i4 = add_vertex(Vec3(0.35,0.35,0.35));
+    int i5 = add_vertex(Vec3(-0.35,0.35,-0.35));
+    int i6 = add_vertex(Vec3(-0.35,-0.35,-0.35));
+    int i7 = add_vertex(Vec3(0.35,-0.35,-0.35));
+    int i8 = add_vertex(Vec3(0.35,0.35,-0.35));
 
     // ajouter 6 faces (sens trigo)
-    add_quad(i1, i2, i3, i0);
-    add_quad(i3, i2, i6, i7);
-    add_quad(i1, i2, i6, i5);
-    add_quad(i0, i3, i7, i4);
-    add_quad(i5, i6, i7, i4);
-    add_quad(i1, i5, i4, i0);
+    add_quad(i1,i2,i3,i4);
+    add_quad(i4,i3,i7,i8);
+    add_quad(i8,i7,i6,i5);
+    add_quad(i5,i6,i2,i1);
+    add_quad(i2,i6,i7,i3);
+    add_quad(i1,i4,i8,i5);
 
     gl_update();
 }
 
 Vec3 MeshQuad::normal_of(const Vec3& A, const Vec3& B, const Vec3& C)
 {
-	// Attention a l'ordre des points !
-	// le produit vectoriel n'est pas commutatif U ^ V = - V ^ U
-	// ne pas oublier de normaliser le resultat.
-
-    Vec3 AB = Vec3(B[0]-A[0],B[1]-A[1],B[2]-A[2]) ;
-    Vec3 BC = Vec3(C[0]-B[0],C[1]-B[1],C[2]-B[2]) ;
-
-    float x = AB[1]*BC[2] - AB[1]*BC[2] ;
-    float y = AB[1]*BC[2] - AB[1]*BC[2] ;
-    float z = AB[1]*BC[2] - AB[1]*BC[2];
-
-    Vec3 N = Vec3(x,y,z) ;
-    float norme = sqrt(x*x+y*y+z*z) ;
-
-    return N/norme;
+    // Attention a l'ordre des points !
+    // le produit vectoriel n'est pas commutatif U ^ V = - V ^ U
+    // ne pas oublier de normaliser le resultat.
+    //Produit vectoriel(Vec(AB),Vec(BC))
+    Vec3 AB, AC, total, n;
+    AB = B - A;
+    AC = C - A;
+    total = glm::cross(AB, AC);
+    n = glm::normalize(total);
+    return n;
 }
 
-
-float MeshQuad::calcul_aire(Vec3 p1,Vec3 p2,Vec3 p3,Vec3 p4)
+float MeshQuad::calcul_aire(int q)
 {
-    float seg1=0.,seg2=0. ;
+    int v1, v2, v3, v4;
+    v1 = m_quad_indices.at(q);
+    v2 = m_quad_indices.at(q+1);
+    v3 = m_quad_indices.at(q+2);
+    v4 = m_quad_indices.at(q+3);
 
-    seg1 = sqrt(pow(p2[0]-p1[0],2)+pow(p2[1]-p1[1],2)+pow(p2[2]-p1[2],2)) ;
-    seg2 = sqrt(pow(p3[0]-p2[0],2)+pow(p3[1]-p2[1],2)+pow(p3[2]-p2[2],2)) ;
+    Vec3 A, B, C, D;
+    A = m_points.at(v1);
+    B = m_points.at(v2);
+    C = m_points.at(v3);
+    D = m_points.at(v4);
 
-    return seg1 * seg2 ;
-
+    float triAire1, triAire2, aire;
+    //Aire triangle ABC et Aire triangle ACD
+    triAire1 = glm::length(glm::cross(B - A, C - A));
+    triAire2 = glm::length(glm::cross(C - A, D - A));
+    //L'aire du quad est la somme des 2 aires
+    aire = triAire1 + triAire2;
+    return aire;
 }
+
 
 bool MeshQuad::is_points_in_quad(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {
-	// On sait que P est dans le plan du quad.
+    // On sait que P est dans le plan du quad.
+    // P est-il au dessus des 4 plans contenant chacun la normale au quad et une arete AB/BC/CD/DA ?
+    // si oui il est dans le quad
+    float res = -1, d = 0;
+    Vec3 n1, n2, n3, n4, n, AB, BC, CD, DA;
+    n = normal_of(A, B, C);
+    AB = B - A;
+    BC = C - B;
+    CD = D - C;
+    DA = A - D;
 
-	// P est-il au dessus des 4 plans contenant chacun la normale au quad et une arete AB/BC/CD/DA ?
-	// si oui il est dans le quad
+    //Plan AB
+    n1 = glm::cross(n, AB);
+    d = glm::dot(n1, A);
+    res = glm::dot(n1, P) - d;
+    if (res < 0) {
+        return false;
+    }
 
+    //Plan BC
+    n2 = glm::cross(n, BC);
+    d = glm::dot(n2, B);
+    res = glm::dot(n2, P) - d;
+    if (res < 0) {
+        return false;
+    }
+
+    //Plan CD
+    n3 = glm::cross(n, CD);
+    d = glm::dot(n3, C);
+    res = glm::dot(n3, P) - d;
+    if (res < 0) {
+        return false;
+    }
+
+    //Plan DA
+    n4 = glm::cross(n, DA);
+    d = glm::dot(n4, D);
+    res = glm::dot(n4, P) - d;
+    if (res < 0) {
+        return false;
+    }
     return true;
 }
 
 bool MeshQuad::intersect_ray_quad(const Vec3& P, const Vec3& Dir, int q, Vec3& inter)
 {
-	// recuperation des indices de points
-	// recuperation des points
-
-	// calcul de l'equation du plan (N+d)
+    // recuperation des indices de points
+    int i1, i2, i3, i4;
+    i1 = m_quad_indices.at(q);
+    i2 = m_quad_indices.at(q+1);
+    i3 = m_quad_indices.at(q+2);
+    i4 = m_quad_indices.at(q+3);
+    // recuperation des points
+    Vec3 A, B, C, D;
+    A = m_points.at(i1);
+    B = m_points.at(i2);
+    C = m_points.at(i3);
+    D = m_points.at(i4);
+    // calcul de l'equation du plan (N+d)
+    Vec3 n = normal_of(A, B, C);
+    float d = glm::dot(n, A); //Produit scalaire normal et p1 pour trouver d
 
     // calcul de l'intersection rayon plan
-	// I = P + alpha*Dir est dans le plan => calcul de alpha
-
-	// alpha => calcul de I
-
-	// I dans le quad ?
-
-    return false;
+    float alpha = (d - glm::dot(n, P)) / glm::dot(n, Dir);
+    // I = P + alpha*Dir est dans le plan => calcul de alpha
+    // alpha => calcul de I
+    inter = P + alpha*Dir;
+    // I dans le quad ?
+    return is_points_in_quad(inter, A, B, C, D);
 }
 
 
 int MeshQuad::intersected_closest(const Vec3& P, const Vec3& Dir)
 {
-	// on parcours tous les quads
-	// on teste si il y a intersection avec le rayon
-	// on garde le plus proche (de P)
-
-	int inter = -1;
-
-	return inter;
+    // on parcours tous les quads
+    // on teste si il y a intersection avec le rayon
+    // on garde le plus proche (de P)
+    int inter = -1;
+    Vec3 intersection = Vec3();
+    bool first = true;
+    float temp;
+    int i;
+    int max_quads = static_cast<int>(m_quad_indices.size());
+    for (i = 0; i < max_quads; i+=4) {
+        if (intersect_ray_quad(P, Dir, i, intersection)) {
+            if (first) {
+                temp = glm::length(P - intersection);
+                inter = i;
+                first = false;
+            }
+            else {
+                float test = glm::length(P - intersection);
+                if (test < temp) {
+                    inter = i;
+                    temp = test;
+                }
+            }
+        }
+    }
+    return inter;
 }
 
 
 Mat4 MeshQuad::local_frame(int q)
 {
-	// Repere locale = Matrice de transfo avec
-	// les trois premieres colones: X,Y,Z locaux
-	// la derniere colonne l'origine du repere
+    // Repere locale = Matrice de transfo avec
+    // les trois premieres colones: X,Y,Z locaux
+    // la derniere colonne l'origine du repere
 
-	// ici Z = N et X = AB
-	// Origine le centre de la face
-	// longueur des axes : [AB]/2
+    // ici Z = N et X = AB
+    // Origine le centre de la face
+    // longueur des axes : [AB]/2
 
-	// recuperation des indices de points
-	// recuperation des points
+    // recuperation des indices de points
+    int i1, i2, i3, i4;
+    i1 = m_quad_indices.at(q);
+    i2 = m_quad_indices.at(q+1);
+    i3 = m_quad_indices.at(q+2);
+    i4 = m_quad_indices.at(q+3);
 
-	// calcul de Z:N / X:AB -> Y
+    // recuperation des points
+    Vec3 A, B, C, D, AB, AC;
+    A = m_points.at(i1);
+    B = m_points.at(i2);
+    C = m_points.at(i3);
+    D = m_points.at(i4);
+    AB = B - A;
+    AC = C - A;
 
-	// calcul du centre
+    // calcul de Z:N / X:AB -> Y
+    Vec3 X, Y, Z, nTri1, nTri2;
+    nTri1 = normal_of(A, B, C);
+    nTri2 = normal_of(A, C, D);
+    Z = glm::normalize((nTri1+nTri2)/2.0f);
+    X = glm::normalize(glm::cross(A - B, Z));
+    Y = glm::normalize(glm::cross(X, Z));
 
-	// calcul de la taille
+    // calcul du centre
+    Vec3 center = (A + B + C + D)/4.0f;
 
-	// calcul de la matrice
+    // calcul de la taille
+    float taille = glm::length(AB)/2;
 
-    return Mat4();
+    // calcul de la matrice
+    Mat4 res = Mat4(Vec4(X, 0), Vec4(Y, 0), Vec4(Z, 0), Vec4(center, 1));
+    res *= scale(taille);
+    return res;
+
 }
 
 void MeshQuad::extrude_quad(int q)
 {
-	// recuperation des indices de points
+    // recuperation des indices de points
+    int i1, i2, i3, i4;
+    i1 = m_quad_indices.at(q);
+    i2 = m_quad_indices.at(q+1);
+    i3 = m_quad_indices.at(q+2);
+    i4 = m_quad_indices.at(q+3);
 
-	// recuperation des points
-
-	// calcul de la normale
-
-	// calcul de la hauteur
-
-	// calcul et ajout des 4 nouveaux points
-
-	// on remplace le quad initial par le quad du dessu
-
-	// on ajoute les 4 quads des cotes
-
-   gl_update();
+    // recuperation des points
+    Vec3 A, B, C, D, AB, AC;
+    A = m_points.at(i1);
+    B = m_points.at(i2);
+    C = m_points.at(i3);
+    D = m_points.at(i4);
+    AB = B - A;
+    AC = C - A;
+    // calcul de la normale
+    Vec3 n = normal_of(A, B, C);
+    // calcul de la hauteur
+    float longueur = sqrt(calcul_aire(q));
+    // calcul et ajout des 4 nouveaux points
+    Vec3 p1, p2, p3, p4;
+    int v1, v2, v3, v4;
+    p1 = A + n * longueur;
+    p2 = B + n * longueur;
+    p3 = C + n * longueur;
+    p4 = D + n * longueur;
+    v1 = add_vertex(p1);
+    v2 = add_vertex(p2);
+    v3 = add_vertex(p3);
+    v4 = add_vertex(p4);
+    // on remplace le quad initial par le quad du dessu
+    m_quad_indices.at(q) = v1;
+    m_quad_indices.at(q+1) = v2;
+    m_quad_indices.at(q+2) = v3;
+    m_quad_indices.at(q+3) = v4;
+    // on ajoute les 4 quads des cotes
+    add_quad(i1, i2, v2, v1);
+    add_quad(i2, i3, v3, v2);
+    add_quad(i3, i4, v4, v3);
+    add_quad(i4, i1, v1, v4);
+    gl_update();
 }
 
 void MeshQuad::transfo_quad(int q, const glm::mat4& tr)
 {
-	// recuperation des indices de points
-	// recuperation des (references de) points
+    // recuperation des indices de points
+    int i1, i2, i3, i4;
+    i1 = m_quad_indices.at(q);
+    i2 = m_quad_indices.at(q+1);
+    i3 = m_quad_indices.at(q+2);
+    i4 = m_quad_indices.at(q+3);
 
-	// generation de la matrice de transfo globale:
-	// indice utilisation de glm::inverse() et de local_frame
+    // recuperation des (references de) points
+    Vec3& A = m_points.at(i1);
+    Vec3& B = m_points.at(i2);
+    Vec3& C = m_points.at(i3);
+    Vec3& D = m_points.at(i4);
 
-	// Application au 4 points du quad
+
+    // generation de la matrice de transfo globale:
+    // indice utilisation de glm::inverse() et de local_frame
+    Mat4 pos = local_frame(q);
+
+    float det = glm::determinant(pos);
+    if (det == 0) {
+        return;
+    }
+    Mat4 transfo = pos * tr * glm::inverse(pos);
+    // Application au 4 points du quad
+    Vec4 A_prime, B_prime, C_prime, D_prime;
+    A = Vec3(transfo * Vec4(A, 1));
+    B = Vec3(transfo * Vec4(B, 1));
+    C = Vec3(transfo * Vec4(C, 1));
+    D = Vec3(transfo * Vec4(D, 1));
+    gl_update();
 }
 
 void MeshQuad::decale_quad(int q, float d)
 {
-
+    Mat4 transfo = translate(0, 0, d);
+    transfo_quad(q, transfo);
+    gl_update();
 }
 
 void MeshQuad::shrink_quad(int q, float s)
 {
-
+    Mat4 transfo = scale(s);
+    transfo_quad(q, transfo);
+    gl_update();
 }
 
 void MeshQuad::tourne_quad(int q, float a)
 {
-
+    Mat4 transfo = rotateZ(a) ;
+    transfo_quad(q, transfo);
+    gl_update();
 }
 
 
@@ -278,99 +423,99 @@ void MeshQuad::tourne_quad(int q, float a)
 
 
 MeshQuad::MeshQuad():
-	m_nb_ind_edges(0)
+    m_nb_ind_edges(0)
 {}
 
 
 void MeshQuad::gl_init()
 {
-	m_shader_flat = new ShaderProgramFlat();
-	m_shader_color = new ShaderProgramColor();
+    m_shader_flat = new ShaderProgramFlat();
+    m_shader_color = new ShaderProgramColor();
 
-	//VBO
-	glGenBuffers(1, &m_vbo);
+    //VBO
+    glGenBuffers(1, &m_vbo);
 
-	//VAO
-	glGenVertexArrays(1, &m_vao);
-	glBindVertexArray(m_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glEnableVertexAttribArray(m_shader_flat->idOfVertexAttribute);
-	glVertexAttribPointer(m_shader_flat->idOfVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glBindVertexArray(0);
+    //VAO
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glEnableVertexAttribArray(m_shader_flat->idOfVertexAttribute);
+    glVertexAttribPointer(m_shader_flat->idOfVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindVertexArray(0);
 
-	glGenVertexArrays(1, &m_vao2);
-	glBindVertexArray(m_vao2);
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glEnableVertexAttribArray(m_shader_color->idOfVertexAttribute);
-	glVertexAttribPointer(m_shader_color->idOfVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glBindVertexArray(0);
+    glGenVertexArrays(1, &m_vao2);
+    glBindVertexArray(m_vao2);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glEnableVertexAttribArray(m_shader_color->idOfVertexAttribute);
+    glVertexAttribPointer(m_shader_color->idOfVertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindVertexArray(0);
 
-	//EBO indices
-	glGenBuffers(1, &m_ebo);
-	glGenBuffers(1, &m_ebo2);
+    //EBO indices
+    glGenBuffers(1, &m_ebo);
+    glGenBuffers(1, &m_ebo2);
 }
 
 void MeshQuad::gl_update()
 {
-	//VBO
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, 3 * m_points.size() * sizeof(GLfloat), &(m_points[0][0]), GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //VBO
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * m_points.size() * sizeof(GLfloat), &(m_points[0][0]), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	std::vector<int> tri_indices;
-	convert_quads_to_tris(m_quad_indices,tri_indices);
+    std::vector<int> tri_indices;
+    convert_quads_to_tris(m_quad_indices,tri_indices);
 
-	//EBO indices
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,tri_indices.size() * sizeof(int), &(tri_indices[0]), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //EBO indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,tri_indices.size() * sizeof(int), &(tri_indices[0]), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	std::vector<int> edge_indices;
-	convert_quads_to_edges(m_quad_indices,edge_indices);
-	m_nb_ind_edges = edge_indices.size();
+    std::vector<int> edge_indices;
+    convert_quads_to_edges(m_quad_indices,edge_indices);
+    m_nb_ind_edges = edge_indices.size();
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo2);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER,m_nb_ind_edges * sizeof(int), &(edge_indices[0]), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo2);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,m_nb_ind_edges * sizeof(int), &(edge_indices[0]), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 
 
 void MeshQuad::set_matrices(const Mat4& view, const Mat4& projection)
 {
-	viewMatrix = view;
-	projectionMatrix = projection;
+    viewMatrix = view;
+    projectionMatrix = projection;
 }
 
 void MeshQuad::draw(const Vec3& color)
 {
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1.0f, 1.0f);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0f, 1.0f);
 
-	m_shader_flat->startUseProgram();
-	m_shader_flat->sendViewMatrix(viewMatrix);
-	m_shader_flat->sendProjectionMatrix(projectionMatrix);
-	glUniform3fv(m_shader_flat->idOfColorUniform, 1, glm::value_ptr(color));
-	glBindVertexArray(m_vao);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_ebo);
-	glDrawElements(GL_TRIANGLES, 3*m_quad_indices.size()/2,GL_UNSIGNED_INT,0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
-	glBindVertexArray(0);
-	m_shader_flat->stopUseProgram();
+    m_shader_flat->startUseProgram();
+    m_shader_flat->sendViewMatrix(viewMatrix);
+    m_shader_flat->sendProjectionMatrix(projectionMatrix);
+    glUniform3fv(m_shader_flat->idOfColorUniform, 1, glm::value_ptr(color));
+    glBindVertexArray(m_vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_ebo);
+    glDrawElements(GL_TRIANGLES, 3*m_quad_indices.size()/2,GL_UNSIGNED_INT,0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+    glBindVertexArray(0);
+    m_shader_flat->stopUseProgram();
 
-	glDisable(GL_POLYGON_OFFSET_FILL);
+    glDisable(GL_POLYGON_OFFSET_FILL);
 
-	m_shader_color->startUseProgram();
-	m_shader_color->sendViewMatrix(viewMatrix);
-	m_shader_color->sendProjectionMatrix(projectionMatrix);
-	glUniform3f(m_shader_color->idOfColorUniform, 0.0f,0.0f,0.0f);
-	glBindVertexArray(m_vao2);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_ebo2);
-	glDrawElements(GL_LINES, m_nb_ind_edges,GL_UNSIGNED_INT,0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
-	glBindVertexArray(0);
-	m_shader_color->stopUseProgram();
-	glDisable(GL_CULL_FACE);
+    m_shader_color->startUseProgram();
+    m_shader_color->sendViewMatrix(viewMatrix);
+    m_shader_color->sendProjectionMatrix(projectionMatrix);
+    glUniform3f(m_shader_color->idOfColorUniform, 0.0f,0.0f,0.0f);
+    glBindVertexArray(m_vao2);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_ebo2);
+    glDrawElements(GL_LINES, m_nb_ind_edges,GL_UNSIGNED_INT,0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+    glBindVertexArray(0);
+    m_shader_color->stopUseProgram();
+    glDisable(GL_CULL_FACE);
 }
 

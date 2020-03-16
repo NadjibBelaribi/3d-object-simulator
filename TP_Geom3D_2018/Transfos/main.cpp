@@ -105,16 +105,16 @@ int main(int argc, char *argv[])
         prim.draw_cylinder(translate(0,0,2), BLEU);*/
 
 
-         /*draw_repere(m2) ;
-         for (int i = 0 ; i< 10 ; i++)
+         draw_repere(m2) ;
+        /* for (int i = 0 ; i< 10 ; i++)
          {
              draw_repere(m2*rotateY(45*i)*translate(10,0,0)*scale(0.5)*m2*rotateY(-90));
-         }*/
+         }
         prim.draw_cube(translate(0,1,0)*scale(5,1,10),BLANC);
 
        for (int i = 1 ; i< 4 ; i++){
         articulations(translate(0,0,2*i)* rotateX(130));
-        }
+        }*/
 };
 
 
