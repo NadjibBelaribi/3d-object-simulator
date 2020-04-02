@@ -10,7 +10,8 @@
 
 class MeshQuad
 {
-protected:
+public:
+
 	/// Points
 	std::vector<Vec3> m_points;
 	/// indice de quads
@@ -18,7 +19,6 @@ protected:
 	/// nombre d'aretes
 	int m_nb_ind_edges;
 
-public:
 
 	inline int nb_quads() const { return m_quad_indices.size()/4;}
 
@@ -29,9 +29,8 @@ public:
 	 */
 	void clear();
 
-    float triAire(const Vec3& P, const Vec3& A, const Vec3& B) ;
-    float calcul_aire(int q) ;
-/**
+
+    /**
 	 * @brief ajoute un sommet
 	 * @param P sommet
 	 * @return l'indice du sommet
@@ -91,7 +90,7 @@ public:
      * @return l'aire du quad
      */
 
-    //float calcul_aire(Vec3 p1,Vec3 p2,Vec3 p3,Vec3 p4);
+    float quad_aire(int q) ;
 
 	/**
 	 * @brief Determine si P est dans le quad A,B,C,D (P considéré ~ dans le plan ABCD)
