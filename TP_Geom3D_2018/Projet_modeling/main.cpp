@@ -16,19 +16,17 @@ const Vec3 GRIS    = {0.5,0.5,0.5};
 const Vec3 NOIR    = {0,0,0};
 
 
-
 void draw_repere(const Primitives& prim, const Mat4& tr)
 {
     prim.draw_sphere(tr, BLANC);
     prim.draw_cylinder(tr*translate(1,0,0)* scale(2,0.5,0.5) * rotateY(90) , ROUGE); // X
-    prim.draw_cylinder(tr*translate(0,1,0)*  scale(0.5,2,0.5) * rotateX(90)  , VERT); //Y
-    prim.draw_cylinder(tr*translate(0,0,1) * scale(0.5,0.5,2) , BLEU); //Z
+    prim.draw_cylinder(tr*translate(0,1,0)*  scale(0.5,2,0.5) * rotateX(90)  , VERT); // Y
+    prim.draw_cylinder(tr*translate(0,0,1) * scale(0.5,0.5,2) , BLEU); // Z
 
     prim.draw_cone(tr*translate(2,0,0)* rotateY(90), ROUGE);
     prim.draw_cone(tr*translate(0,2,0)* rotateX(-90), VERT);
     prim.draw_cone(tr*translate(0,0,2), BLEU);
 }
-
 
 void star(MeshQuad& m)
 {
@@ -46,39 +44,121 @@ void star(MeshQuad& m)
         }
 }
 
-
 void spirale(MeshQuad& m)
 {
-    m.create_cube();
+     m.create_cube();
      #pragma omp parallel for
     for(int i = 0 ; i < 250 ; i++)
     {
-          m.transfo_quad(4,rotateX(10)*translate(0.11,0,0)*scale(0.99)) ;
-          m.extrude_quad(4) ;
+          m.transfo_quad(12,rotateY(10)*translate(0,0.11,0)*scale(0.99)) ;
+          m.extrude_quad(12) ;
     }
 
 }
-void test(MeshQuad& m ,int q, int n )
+
+void inside_shape1(MeshQuad& m,int q, int count)
 {
-    if(n > 0)
+    int index;
+    if(count > 0)
+    {
+        m.extrude_quad(q);
+        m.extrude_quad(q);
+        m.shrink_quad(q,0.9f);
+        m.tourne_quad(q,5) ;
+        m.extrude_quad(q);
+        m.shrink_quad(q,0.5f);
+        m.extrude_quad(q);
+        m.decale_quad(q,1.2f);
+
+       index = m.nb_quads()*4;
+
+       inside_shape1(m,q, count-1);
+
+       inside_shape1(m,index-4, count-1);
+       inside_shape1(m,index-8, count-1);
+
+       inside_shape1(m,index-12, count-1);
+       inside_shape1(m,index-16, count-1);
+
+    }
+}
+
+void inside_shape2(MeshQuad& m,int q, int count)
+{
+    int index;
+    if(count > 0)
     {
         m.extrude_quad(q) ;
-        m.extrude_quad(q+16) ;
-        m.extrude_quad(q+8) ;
-        m.shrink_quad(q+4,0.85);
+        m.extrude_quad(q) ;
+        m.shrink_quad(q,0.5f) ;
+        m.extrude_quad(q) ;
+         m.decale_quad(q,5);
 
+       index = m.nb_quads()*4;
 
-      test(m,q+4,n-1) ;
+       inside_shape2(m,q, count-1);
+
+       inside_shape2(m,index-4, count-1);
+       inside_shape2(m,index-8, count-1);
+
+       inside_shape2(m,index-12, count-1);
+       inside_shape2(m,index-16, count-1);
+    }
+}
+
+void inside_shape3(MeshQuad& m,int q, int count)
+{
+    if(count >= 1){
+        #pragma omp parallel for
+        for(int i = 0 ; i < 17 ; i++)
+         {
+            m.extrude_quad(q) ;
+            m.transfo_quad(q,rotateX(-18)) ;
+
+         }
+         int index = count * 16 ;
+         inside_shape3(m,index,count -1) ;
+
     }
 
 }
 
-void shape1(MeshQuad& m )
+void shape1 (MeshQuad& m)
 {
     m.create_cube() ;
-    test(m,4,3) ;
+      #pragma omp parallel for
+      for(int i = 0 ; i < 6 ; i++)
+          inside_shape1(m,4*i,3) ;
 
 }
+
+void shape2(MeshQuad& m )
+{
+    m.create_cube() ;
+
+    for(int i = 0 ; i < 8; i++)
+     {
+       m.extrude_quad(12) ;
+       m.transfo_quad(12,rotateY(18)) ;
+       m.extrude_quad(16) ;
+       m.transfo_quad(16,rotateY(-18)) ;
+     }
+
+
+    inside_shape2(m,12,3) ;
+    inside_shape2(m,16,3) ;
+
+
+}
+
+void shape3(MeshQuad& m )
+{
+    m.create_cube() ;
+    inside_shape3(m,12,18) ;
+    m.extrude_quad(12) ;
+
+ }
+
 int main(int argc, char *argv[])
 {
     Primitives prim;
@@ -104,7 +184,7 @@ int main(int argc, char *argv[])
         mesh.set_matrices(viewer.getCurrentModelViewMatrix(),viewer.getCurrentProjectionMatrix());
         prim.set_matrices(viewer.getCurrentModelViewMatrix(),viewer.getCurrentProjectionMatrix());
 
-        mesh.draw(CYAN);
+        mesh.draw(JAUNE);
 
         if (selected_quad>=0)
         {
@@ -113,7 +193,6 @@ int main(int argc, char *argv[])
          }
     };
 
-    Mat4 transfo  =translate(0,1,0) ;
     // to do when key pressed
     viewer.f_keyPress = [&] (int key, Qt::KeyboardModifiers mod)
     {
@@ -162,9 +241,19 @@ int main(int argc, char *argv[])
                break;
 
             case Qt::Key_1:
-                shape1(mesh) ;
+               shape1(mesh) ;
+               break ;
+
+            case Qt::Key_2:
+                 shape2(mesh) ;
+                 break ;
+
+            case Qt::Key_3:
+                shape3(mesh) ;
                 break ;
-             // ....
+
+
+                 // ....
 
                 // Attention au cas m_selected_quad == -1
             default:

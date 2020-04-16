@@ -104,12 +104,12 @@ void MeshQuad::bounding_sphere(Vec3& C, float& R)
       }
       C /= nb_points;
 
-      float temp ,max = glm::length(m_points.at(0) - C);
+      float length ,max = glm::length(m_points.at(0) - C);
 
       for (i = 1; i < nb_points; i++) {
-          temp = glm::length(m_points.at(i) - C);
-          if (temp > max) {
-              max = temp;
+          length = glm::length(m_points.at(i) - C);
+          if (length > max) {
+              max = length;
           }
       }
       R = max;
@@ -119,7 +119,7 @@ void MeshQuad::bounding_sphere(Vec3& C, float& R)
 void MeshQuad::create_cube()
 {
     clear();
-    float s = 0.7 ;
+    float s = 0.5 ;
 
     // ajouter 8 sommets (-1 +1)
     int i1 = add_vertex(Vec3(-s,s,s));
@@ -252,39 +252,28 @@ int MeshQuad::intersected_closest(const Vec3& P, const Vec3& Dir)
     // on teste si il y a intersection avec le rayon
     // on garde le plus proche (de P)
 
-    int i, index = -1;
-    Vec3 intersector = Vec3();
-    bool existe = false;
-    float min ,temp ;
 
-    int nb_quads = m_quad_indices.size();
+    int  i,inter = -1 ;
+    float temp , min = FLT_MAX ;
+    Vec3 inters = Vec3() ;
 
-    // Chercher l'indice de la premiere intersection
+    int nb_quads  = m_quad_indices.size() ;
     #pragma omp parallel for
-    for (i = 0; i < nb_quads; i += 4) {
-        if (intersect_ray_quad(P, Dir, i, intersector)) {
-                min = glm::length(P - intersector);
-                index = i;
-                existe = true ;
-            }
-        }
-    // S'il y'a au moins une intersection
-    if(existe)
+    for (i = 0  ; i < nb_quads ; i+=4)
     {
-        #pragma omp parallel for
-        for (i = 0; i < nb_quads; i += 4){
-            if (intersect_ray_quad(P, Dir, i, intersector))
+        if(intersect_ray_quad(P,Dir,i,inters))
+        {
+            temp = glm::length(P - inters) ;
+            if( temp  < min)
             {
-                    temp = glm::length(P - intersector);
-                    if (temp < min) {
-                        index = i;
-                        min = temp;
-                    }
+                inter = i ;
+                min = temp ;
             }
         }
     }
 
-    return index;
+    return inter;
+
 }
 
 
@@ -410,14 +399,14 @@ void MeshQuad::transfo_quad(int q, const glm::mat4& tr)
     // indice utilisation de glm::inverse() et de local_frame
     Mat4 local = local_frame(q);
 
+      // Si la l'inverse n'existe pas on retourne
      if (glm::determinant(local) == 0) {
         return;
     }
     Mat4 transfo = local * tr * glm::inverse(local);
 
     // Application au 4 points du quad
-    Vec4 A_prime, B_prime, C_prime, D_prime;
-
+     
     A = Vec3(transfo * Vec4(A, 1));
     B = Vec3(transfo * Vec4(B, 1));
     C = Vec3(transfo * Vec4(C, 1));
@@ -428,26 +417,20 @@ void MeshQuad::transfo_quad(int q, const glm::mat4& tr)
 
 void MeshQuad::decale_quad(int q, float d)
 {
-    Mat4 transfo = translate(0, 0, d);
-    transfo_quad(q, transfo);
-
-    gl_update();
+     transfo_quad(q, translate(0, 0, d));
+     gl_update();
 }
 
 void MeshQuad::shrink_quad(int q, float s)
 {
-    Mat4 transfo = scale(s);
-    transfo_quad(q, transfo);
-
+    transfo_quad(q, scale(s));
     gl_update();
 }
 
 void MeshQuad::tourne_quad(int q, float a)
 {
-    Mat4 transfo = rotateZ(a) ;
-    transfo_quad(q, transfo);
-
-    gl_update();
+     transfo_quad(q, rotateZ(a));
+     gl_update();
 }
 
 
