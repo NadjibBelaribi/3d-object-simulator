@@ -2,6 +2,6 @@
 
 # Technologies utilisées : 
 
- OpenGL
- C++
- Qt (version 5 ) 
+ 1. OpenGL
+ 2. C++
+ 3. Qt (version 5 ) 
